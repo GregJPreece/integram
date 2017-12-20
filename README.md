@@ -97,6 +97,7 @@ Feel free to send PRs. If you want to contribute new service integration, please
 * [Trello bindings](https://github.com/hackerlist/trello) *
 * [Gitlab bindings](https://github.com/xanzy/go-gitlab) * 
 * [Bitbucket bindings](https://github.com/ktrysmt/go-bitbucket) *
+* [Gitea SDK](https://github.com/go-gitea/go-sdk) *
 
 \* - **package source is modified**
 
