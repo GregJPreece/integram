@@ -1,0 +1,73 @@
+# Vagrant file providing a development environment for 
+# Integram > Gitea integration. Hosts Gitea and the Integram bot.
+# TODO: Remove or archive before PR? I'll hide this in the services folder for now.
+#
+# Requires plugins: vagrant-vbguest, vagrant-reload
+#
+# Author: Greg J Preece
+# Created: 2017-12-20
+# Updated: 2017-12-20
+
+VAGRANTFILE_API_VERSION = '2'
+
+unless Vagrant.has_plugin?("vagrant-vbguest")
+  raise 'vagrant-vbguest is not installed! See Vagrantfile header for provisioning instructions'
+end
+  
+unless Vagrant.has_plugin?("vagrant-reload")
+  raise 'vagrant-reload is not installed! See Vagrantfile header for provisioning instructions'
+end
+  
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vm.box = "bento/ubuntu-16.04"
+  config.vm.hostname = "local.gitea.io"
+
+  # Forward port 3000 on the host to port 3000 on the guest for Gitea
+  config.vm.network "forwarded_port", guest: 3000, host: 3000, auto_correct: true
+
+  # Check guest additions
+  config.vbguest.auto_update = true;
+
+  # Sync folders to VM
+  config.vm.synced_folder "../../../", "/home/vagrant/integram", create: true, group: "vagrant", owner: "vagrant"
+
+  # VirtualBox configuration:
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = "local.gitea.io"
+
+    # Don't display the VM's output - run headless
+    vb.gui = false
+  
+    # Memory and CPU:
+    vb.cpus = 2
+    vb.memory = "1024"
+  end
+
+  # Initial package and config provision
+  config.vm.provision "shell", inline: <<-SHELL
+    sudo apt-get update
+    sudo apt-get dist-upgrade -y
+  SHELL
+
+  config.vm.provision :reload
+
+  config.vm.provision "shell", inline: <<-SHELL
+    sudo -s
+    apt-get autoremove -y
+    apt-get install -y htop nano ssh bind9 bind9utils samba git
+    adduser --home /home/git --shell /bin/bash git
+    mkdir /var/gitea
+    mkdir /var/repos
+    cd /var/gitea
+    wget https://dl.gitea.io/gitea/1.3.2/gitea-1.3.2-linux-amd64
+    mv gitea-1.3.2-linux-amd64 gitea
+    chown -R git:git /var/gitea
+    chown git:git /var/repos
+    chmod +x gitea
+    cp /home/vagrant/integram/services/gitea/provision/gitea.service /lib/systemd/system/
+    systemctl enable gitea.service
+    systemctl start gitea.service
+  SHELL
+
+end
